@@ -147,7 +147,7 @@ void CommutatorThread::hiResTimerCallback()
     if (currentQuaternion == defaultQuaternion)
         return;
 
-    double currentTwist = quaternionToTwist (Quaternion<double> (currentQuaternion[0], currentQuaternion[1], currentQuaternion[2], currentQuaternion[3]));
+    double currentTwist = quaternionToTwist (Quaternion<double> (currentQuaternion[1], currentQuaternion[2], currentQuaternion[3], currentQuaternion[0]));
 
     if (! isnan (lastTwist))
     {
