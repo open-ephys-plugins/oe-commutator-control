@@ -68,12 +68,12 @@ void OECommutator::parameterValueChanged (Parameter* parameter)
 
 bool OECommutator::isReady()
 {
+    commutator->setRotationAxis (getRotationAxis (getParameter ("angle")->getValueAsString()));
     return commutator->isReady() && streamExists(currentStream);
 }
 
 bool OECommutator::startAcquisition()
 {
-    commutator->setRotationAxis (getRotationAxis (getParameter ("angle")->getValueAsString()));
     return commutator->start();
 }
 
