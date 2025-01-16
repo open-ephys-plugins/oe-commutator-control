@@ -5,9 +5,13 @@
 *.d
 
 
-# 2. Build files
+# 2. Platform specific build related
 
-**/Build/*
-!**/Build/CMakeLists.txt
-!**/Build/CMAKE_README.txt
+Builds/*/*
 
+
+# 3. OS-specific files
+
+.DS_Store
+
+.vscode

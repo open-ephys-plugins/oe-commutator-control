@@ -23,44 +23,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef PROCESSORPLUGIN_H_DEFINED
 #define PROCESSORPLUGIN_H_DEFINED
 
-#include <ProcessorHeaders.h>
 #include "CommutatorThread.h"
+#include <ProcessorHeaders.h>
 
 class OECommutator : public GenericProcessor
 {
 public:
-	/** The class constructor, used to initialize any members. */
-	OECommutator();
+    OECommutator();
 
-	/** The class destructor, used to deallocate memory */
-	~OECommutator();
+    ~OECommutator() {};
 
-	/** If the processor has a custom editor, this method must be defined to instantiate it. */
-	AudioProcessorEditor* createEditor() override;
+    AudioProcessorEditor* createEditor() override;
 
+    void process (AudioBuffer<float>& buffer) override;
 
-	/** Defines the functionality of the processor.
-		The process method is called every time a new data buffer is available.
-		Visualizer plugins typically use this method to send data to the canvas for display purposes */
-	void process(AudioBuffer<float>& buffer) override;
+    void parameterValueChanged (Parameter* parameter) override;
 
+    void manualTurn (double turn);
 
-	void parameterValueChanged(Parameter* parameter) override;
+    bool startAcquisition() override;
+    bool stopAcquisition() override;
+    bool isReady() override;
 
-	void manualTurn(double turn);
-
-	bool startAcquisition() override;
-	bool stopAcquisition() override;
+    Vector3D<double> getRotationAxis (String angle) const;
 
 private:
-	uint16 currentStream;
-	std::unique_ptr<CommutatorThread> commutator;
+    uint16 currentStream = 0;
+    std::unique_ptr<CommutatorThread> commutator;
 
-	int selAngle = 0;
-	int selPol = 0;
-
-	bool streamExists(uint16 streamId);
-
+    bool streamExists (uint16 streamId) const;
 };
 
 #endif

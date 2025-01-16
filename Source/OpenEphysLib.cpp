@@ -27,57 +27,46 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef WIN32
 #include <Windows.h>
-#define EXPORT __declspec(dllexport)
+#define EXPORT __declspec (dllexport)
 #else
-#define EXPORT __attribute__((visibility("default")))
+#define EXPORT __attribute__ ((visibility ("default")))
 #endif
 
 using namespace Plugin;
 
 #define NUM_PLUGINS 1
 
-extern "C" EXPORT void getLibInfo(Plugin::LibraryInfo* info)
+extern "C" EXPORT void getLibInfo (Plugin::LibraryInfo* info)
 {
-	/* API version, defined by the GUI source.
-	Should not be changed to ensure it is always equal to the one used in the latest codebase.
-	The GUI refueses to load plugins with mismatched API versions */
-	info->apiVersion = PLUGIN_API_VER;
-	info->name = "Open Ephys commutator control"; // <---- update
-	info->libVersion = "0.1.0"; // <---- update
-	info->numPlugins = NUM_PLUGINS;
+    info->apiVersion = PLUGIN_API_VER;
+    info->name = "Open Ephys commutator control";
+    info->libVersion = "0.1.0";
+    info->numPlugins = NUM_PLUGINS;
 }
 
-extern "C" EXPORT int getPluginInfo(int index, Plugin::PluginInfo* info)
+extern "C" EXPORT int getPluginInfo (int index, Plugin::PluginInfo* info)
 {
-	switch (index)
-	{
-		//one case per plugin. This example is for a processor which connects directly to the signal chain
-	case 0:
-		//Type of plugin. See "Source/Processors/PluginManager/OpenEphysPlugin.h" for complete info about the different type structures
-		info->type = Plugin::Type::PROCESSOR;
-
-		//Processor name
-		info->processor.name = "OE Commutator"; //Processor name shown in the GUI
-
-		//Type of processor. Can be FILTER, SOURCE, SINK or UTILITY. Specifies where on the processor list will appear
-		info->processor.type = Processor::Type::SINK;
-
-		//Class factory pointer. Replace "ProcessorPluginSpace::ProcessorPlugin" with the namespace and class name.
-		info->processor.creator = &(Plugin::createProcessor<OECommutator>);
-		break;
-	default:
-		return -1;
-		break;
-	}
-	return 0;
+    switch (index)
+    {
+        case 0:
+            info->type = Plugin::Type::PROCESSOR;
+            info->processor.name = "OE Commutator"; //Processor name shown in the GUI
+            info->processor.type = Processor::Type::SINK;
+            info->processor.creator = &(Plugin::createProcessor<OECommutator>);
+            break;
+        default:
+            return -1;
+            break;
+    }
+    return 0;
 }
 
 #ifdef WIN32
-BOOL WINAPI DllMain(IN HINSTANCE hDllHandle,
-	IN DWORD     nReason,
-	IN LPVOID    Reserved)
+BOOL WINAPI DllMain (IN HINSTANCE hDllHandle,
+                     IN DWORD nReason,
+                     IN LPVOID Reserved)
 {
-	return TRUE;
+    return TRUE;
 }
 
 #endif
