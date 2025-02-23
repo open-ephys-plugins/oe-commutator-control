@@ -53,11 +53,11 @@ OECommutatorEditor::OECommutatorEditor (GenericProcessor* parentNode)
     axisOverride->addListener (this);
     addAndMakeVisible (axisOverride.get());
 
-    angleSelection = std::make_unique<ComboBoxParameterEditor> (parentNode->getParameter ("angle"));
-    angleSelection->setLayout (ParameterEditor::Layout::nameHidden);
-    angleSelection->setBounds (110, 50, 62, 20);
-    angleSelection->setEnabled (axisOverride->getToggleState());
-    addAndMakeVisible (angleSelection.get());
+    axisSelection = std::make_unique<ComboBoxParameterEditor> (parentNode->getParameter ("axis"));
+    axisSelection->setLayout (ParameterEditor::Layout::nameHidden);
+    axisSelection->setBounds (110, 50, 62, 20);
+    axisSelection->setEnabled (axisOverride->getToggleState());
+    addAndMakeVisible (axisSelection.get());
 
     streamLabel = std::make_unique<Label> ("Stream label");
     streamLabel->setText ("Stream", dontSendNotification);
@@ -100,7 +100,7 @@ void OECommutatorEditor::buttonClicked (Button* btn)
     }
     else if (btn == axisOverride.get())
     {
-        angleSelection->setEnabled (btn->getToggleState());
+        axisSelection->setEnabled (btn->getToggleState());
     }
 }
 
@@ -153,7 +153,7 @@ void OECommutatorEditor::startAcquisition()
 {
     streamSelection->setEnabled (false);
     serialSelection->setEnabled (false);
-    angleSelection->setEnabled (false);
+    axisSelection->setEnabled (false);
     axisOverride->setEnabled (false);
 }
 
@@ -161,6 +161,6 @@ void OECommutatorEditor::stopAcquisition()
 {
     streamSelection->setEnabled (true);
     serialSelection->setEnabled (true);
-    angleSelection->setEnabled (true);
+    axisSelection->setEnabled (true);
     axisOverride->setEnabled (true);
 }

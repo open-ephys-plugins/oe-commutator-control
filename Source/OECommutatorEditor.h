@@ -48,7 +48,7 @@ public:
 private:
     ofSerial serial;
 
-    std::unique_ptr<ComboBoxParameterEditor> angleSelection;
+    std::unique_ptr<ComboBoxParameterEditor> axisSelection;
 
     std::unique_ptr<ComboBox> serialSelection;
     std::unique_ptr<ComboBox> streamSelection;
