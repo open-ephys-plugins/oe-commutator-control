@@ -45,7 +45,7 @@ public:
     bool stopAcquisition() override;
     bool isReady() override;
 
-    Vector3D<double> getRotationAxis (String angle) const;
+    Vector3D<double> getRotationAxis (String axis) const;
 
 private:
     uint16 currentStream = 0;

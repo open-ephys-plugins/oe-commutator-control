@@ -32,15 +32,15 @@ OECommutator::OECommutator()
 
     addStringParameter (Parameter::PROCESSOR_SCOPE, "serial_name", "Serial Name", "Serial port name", "", true);
 
-    Array<String> angles = Array<String>();
-    angles.add("+Z");
-    angles.add("-Z");
-    angles.add("+Y");
-    angles.add("-Y");
-    angles.add("+X");
-    angles.add("-X");
+    Array<String> axes = Array<String>();
+    axes.add("+Z");
+    axes.add("-Z");
+    axes.add("+Y");
+    axes.add("-Y");
+    axes.add("+X");
+    axes.add("-X");
 
-    addCategoricalParameter (Parameter::PROCESSOR_SCOPE, "angle", "Angle", "Selected angle", angles, 0, true);
+    addCategoricalParameter (Parameter::PROCESSOR_SCOPE, "axis", "Axis", "Selected axis", axes, 0, true);
 
     commutator = std::make_unique<CommutatorThread>();
 }
@@ -68,7 +68,7 @@ void OECommutator::parameterValueChanged (Parameter* parameter)
 
 bool OECommutator::isReady()
 {
-    commutator->setRotationAxis (getRotationAxis (getParameter ("angle")->getValueAsString()));
+    commutator->setRotationAxis (getRotationAxis (getParameter ("axis")->getValueAsString()));
     return commutator->isReady() && streamExists(currentStream);
 }
 
@@ -119,29 +119,29 @@ void OECommutator::manualTurn (double turn)
     commutator->manualTurn (turn);
 }
 
-Vector3D<double> OECommutator::getRotationAxis(String angle) const
+Vector3D<double> OECommutator::getRotationAxis(String axis) const
 {
-    if (angle == "+Z")
+    if (axis == "+Z")
     {
         return Vector3D<double> (0, 0, 1);
     }
-    else if (angle == "-Z")
+    else if (axis == "-Z")
     {
         return Vector3D<double> (0, 0, -1);
     }
-    else if (angle == "+Y")
+    else if (axis == "+Y")
     {
         return Vector3D<double> (0, 1, 0);
     }
-    else if (angle == "-Y")
+    else if (axis == "-Y")
     {
         return Vector3D<double> (0, -1, 0);
     }
-    else if (angle == "+X")
+    else if (axis == "+X")
     {
         return Vector3D<double> (1, 0, 0);
     }
-    else if (angle == "-X")
+    else if (axis == "-X")
     {
         return Vector3D<double> (-1, 0, 0);
     }

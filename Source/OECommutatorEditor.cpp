@@ -32,11 +32,11 @@ OECommutatorEditor::OECommutatorEditor (GenericProcessor* parentNode)
 
     serialLabel = std::make_unique<Label> ("Serial label");
     serialLabel->setText ("Serial port", dontSendNotification);
-    serialLabel->setBounds (15, 25, 110, 20);
+    serialLabel->setBounds (5, 30, 90, 20);
     addAndMakeVisible (serialLabel.get());
 
     serialSelection = std::make_unique<ComboBox> ("Serial");
-    serialSelection->setBounds (15, 45, 110, 20);
+    serialSelection->setBounds (5, 50, 90, 20);
     for (int i = 0; i < devices.size(); i++)
     {
         serialSelection->addItem (devices[i].getDevicePath(), i + 1);
@@ -44,32 +44,47 @@ OECommutatorEditor::OECommutatorEditor (GenericProcessor* parentNode)
     serialSelection->addListener (this);
     addAndMakeVisible (serialSelection.get());
 
+    axisOverride = std::make_unique<UtilityButton> ("Override");
+    axisOverride->setBounds (110, 30, 62, 18);
+    axisOverride->setRadius (2.0f);
+    axisOverride->setClickingTogglesState (true);
+    axisOverride->setToggleState (false, dontSendNotification);
+    axisOverride->setTooltip ("Override the default axis of rotation");
+    axisOverride->addListener (this);
+    addAndMakeVisible (axisOverride.get());
+
+    axisSelection = std::make_unique<ComboBoxParameterEditor> (parentNode->getParameter ("axis"));
+    axisSelection->setLayout (ParameterEditor::Layout::nameHidden);
+    axisSelection->setBounds (110, 50, 62, 20);
+    axisSelection->setEnabled (axisOverride->getToggleState());
+    addAndMakeVisible (axisSelection.get());
+
     streamLabel = std::make_unique<Label> ("Stream label");
     streamLabel->setText ("Stream", dontSendNotification);
-    streamLabel->setBounds (15, 75, 110, 20);
+    streamLabel->setBounds (5, 75, 90, 20);
     addAndMakeVisible (streamLabel.get());
 
     streamSelection = std::make_unique<ComboBox> ("Stream");
-    streamSelection->setBounds (15, 95, 110, 20);
+    streamSelection->setBounds (5, 95, 90, 20);
     streamSelection->addListener (this);
     addAndMakeVisible (streamSelection.get());
 
+    manualTurnLabel = std::make_unique<Label> ("manualTurn");
+    manualTurnLabel->setText ("Turn", dontSendNotification);
+    manualTurnLabel->setBounds (118, 75, 50, 20);
+    addAndMakeVisible (manualTurnLabel.get());
+
     leftButton = std::make_unique<ArrowButton> ("left", 0.5f, juce::Colours::black);
-    leftButton->setBounds (130, 75, 20, 20);
+    leftButton->setBounds (117, 95, 20, 20);
     leftButton->addListener (this);
     leftButton->setRepeatSpeed (500, 100);
     addAndMakeVisible (leftButton.get());
 
     rightButton = std::make_unique<ArrowButton> ("right", 0.0f, juce::Colours::black);
-    rightButton->setBounds (150, 75, 20, 20);
+    rightButton->setBounds (142, 95, 20, 20);
     rightButton->addListener (this);
     rightButton->setRepeatSpeed (500, 100);
     addAndMakeVisible (rightButton.get());
-
-    angleSelection = std::make_unique<ComboBoxParameterEditor> (parentNode->getParameter ("angle"));
-    angleSelection->setLayout (ParameterEditor::Layout::nameHidden);
-    angleSelection->setBounds (130, 45, 42, 20);
-    addAndMakeVisible (angleSelection.get());
 }
 
 void OECommutatorEditor::buttonClicked (Button* btn)
@@ -82,6 +97,10 @@ void OECommutatorEditor::buttonClicked (Button* btn)
     else if (btn == rightButton.get())
     {
         proc->manualTurn (-0.1f);
+    }
+    else if (btn == axisOverride.get())
+    {
+        axisSelection->setEnabled (btn->getToggleState());
     }
 }
 
@@ -134,10 +153,14 @@ void OECommutatorEditor::startAcquisition()
 {
     streamSelection->setEnabled (false);
     serialSelection->setEnabled (false);
+    axisSelection->setEnabled (false);
+    axisOverride->setEnabled (false);
 }
 
 void OECommutatorEditor::stopAcquisition()
 {
     streamSelection->setEnabled (true);
     serialSelection->setEnabled (true);
+    axisSelection->setEnabled (true);
+    axisOverride->setEnabled (true);
 }

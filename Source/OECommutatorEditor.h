@@ -48,12 +48,14 @@ public:
 private:
     ofSerial serial;
 
-    std::unique_ptr<ComboBoxParameterEditor> angleSelection;
+    std::unique_ptr<ComboBoxParameterEditor> axisSelection;
 
     std::unique_ptr<ComboBox> serialSelection;
     std::unique_ptr<ComboBox> streamSelection;
     std::unique_ptr<Label> serialLabel;
     std::unique_ptr<Label> streamLabel;
+    std::unique_ptr<UtilityButton> axisOverride;
+    std::unique_ptr<Label> manualTurnLabel;
     std::unique_ptr<ArrowButton> leftButton;
     std::unique_ptr<ArrowButton> rightButton;
 
