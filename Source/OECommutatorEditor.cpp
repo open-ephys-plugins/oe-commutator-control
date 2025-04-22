@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 OECommutatorEditor::OECommutatorEditor (GenericProcessor* parentNode)
     : GenericEditor (parentNode)
 {
-    desiredWidth = 170;
+    desiredWidth = 180;
 
     vector<ofSerialDeviceInfo> devices = serial.getDeviceList();
 
