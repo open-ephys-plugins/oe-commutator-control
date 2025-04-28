@@ -45,6 +45,7 @@ public:
     bool isReady() const;
 
 private:
+    /** Converts quaternion data to a twist. Quaternion values are expected to be ordered X/Y/Z/W. */
     double quaternionToTwist (Quaternion<double> quaternion);
     void sendTurn (double turn);
 

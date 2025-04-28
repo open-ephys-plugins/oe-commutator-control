@@ -33,16 +33,18 @@ OECommutator::OECommutator()
     addStringParameter (Parameter::PROCESSOR_SCOPE, "serial_name", "Serial Name", "Serial port name", "", true);
 
     Array<String> axes = Array<String>();
-    axes.add("+Z");
-    axes.add("-Z");
-    axes.add("+Y");
-    axes.add("-Y");
-    axes.add("+X");
-    axes.add("-X");
+    axes.add ("+Z");
+    axes.add ("-Z");
+    axes.add ("+Y");
+    axes.add ("-Y");
+    axes.add ("+X");
+    axes.add ("-X");
 
     addCategoricalParameter (Parameter::PROCESSOR_SCOPE, "axis", "Axis", "Selected axis", axes, 0, true);
 
     commutator = std::make_unique<CommutatorThread>();
+
+    channelIndices.fill (-1);
 }
 
 AudioProcessorEditor* OECommutator::createEditor()
@@ -69,7 +71,21 @@ void OECommutator::parameterValueChanged (Parameter* parameter)
 bool OECommutator::isReady()
 {
     commutator->setRotationAxis (getRotationAxis (getParameter ("axis")->getValueAsString()));
-    return commutator->isReady() && streamExists(currentStream);
+
+    if (! commutator->isReady())
+        return false;
+
+    if (! streamExists (currentStream))
+        return false;
+
+    int maxStreamIndex = getDataStream (currentStream)->getContinuousChannels().size();
+
+    for (const auto index : channelIndices)
+    {
+        if (index < 0 || index >= maxStreamIndex)
+            return false;
+    }
+    return true;
 }
 
 bool OECommutator::startAcquisition()
@@ -94,7 +110,7 @@ void OECommutator::process (AudioBuffer<float>& buffer)
         {
             for (int i = 0; i < 4; i++)
             {
-                int chanIndex = getDataStream (currentStream)->getContinuousChannels()[i]->getGlobalIndex();
+                int chanIndex = getDataStream (currentStream)->getContinuousChannels()[channelIndices[i]]->getGlobalIndex();
                 data[i] = buffer.getSample (chanIndex, nSamples - 1);
             }
 
@@ -119,7 +135,7 @@ void OECommutator::manualTurn (double turn)
     commutator->manualTurn (turn);
 }
 
-Vector3D<double> OECommutator::getRotationAxis(String axis) const
+Vector3D<double> OECommutator::getRotationAxis (String axis) const
 {
     if (axis == "+Z")
     {
@@ -148,5 +164,25 @@ Vector3D<double> OECommutator::getRotationAxis(String axis) const
     else
     {
         return Vector3D<double> (0, 0, 0);
+    }
+}
+
+void OECommutator::setChannelIndices (std::array<int, NUM_QUATERNION_CHANNELS> indices)
+{
+    channelIndices = indices;
+}
+
+bool OECommutator::verifyQuaternionChannelIndices (std::array<int, NUM_QUATERNION_CHANNELS> indices)
+{
+    for (int i = 0; i < NUM_QUATERNION_CHANNELS; i++)
+    {
+        if (indices[i] < 0)
+            return false;
+
+        for (int j = i + 1; j < NUM_QUATERNION_CHANNELS; j++)
+        {
+            if (indices[i] == indices[j])
+                return false;
+        }
     }
 }

@@ -47,11 +47,29 @@ public:
 
     Vector3D<double> getRotationAxis (String axis) const;
 
+    static constexpr int NUM_QUATERNION_CHANNELS = 4;
+
+    static enum class QuaternionChannel : uint32_t
+    {
+        X = 0,
+        Y = 1,
+        Z = 2,
+        W = 3,
+    };
+
+    /** Sets the quaternion channel indices within a specific stream. Quaternion indices are expected to be ordered X/Y/Z/W. */
+    void setChannelIndices (std::array<int, NUM_QUATERNION_CHANNELS> indices);
+
+    /** Check that all indices are unique, and greater than or equal to zero. */
+    static bool verifyQuaternionChannelIndices (std::array<int, NUM_QUATERNION_CHANNELS> indices);
+
 private:
     uint16 currentStream = 0;
     std::unique_ptr<CommutatorThread> commutator;
 
     bool streamExists (uint16 streamId) const;
+
+    std::array<int, NUM_QUATERNION_CHANNELS> channelIndices {};
 };
 
 #endif

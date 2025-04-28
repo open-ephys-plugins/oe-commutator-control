@@ -125,15 +125,49 @@ void OECommutatorEditor::updateSettings()
 {
     streamSelection->clear();
 
+    std::array<int, OECommutator::NUM_QUATERNION_CHANNELS> indices {};
+    indices.fill (-1);
+
     for (auto stream : getProcessor()->getDataStreams())
     {
-        if (stream->getIdentifier().contains (".bno"))
+        if (stream->getIdentifier().contains (".9dof"))
         {
+            auto channels = stream->getContinuousChannels();
+
+            for (int i = 0; i < channels.size(); i++)
+            {
+                auto ch = channels[i];
+
+                if (ch->getIdentifier().contains(".quaternion.w"))
+                {
+                    indices[(uint32_t) OECommutator::QuaternionChannel::W] = i;
+                }
+                else if (ch->getIdentifier().contains (".quaternion.x"))
+                {
+                    indices[(uint32_t) OECommutator::QuaternionChannel::X] = i;
+                }
+                else if (ch->getIdentifier().contains (".quaternion.y"))
+                {
+                    indices[(uint32_t) OECommutator::QuaternionChannel::Y] = i;
+                }
+                else if (ch->getIdentifier().contains (".quaternion.z"))
+                {
+                    indices[(uint32_t) OECommutator::QuaternionChannel::Z] = i;
+                }
+            }
+
+            if (!OECommutator::verifyQuaternionChannelIndices(indices))
+            {
+                LOGD ("Invalid channel indices. Cannot find all quaternion channels in this data stream.");
+                continue;
+            }
+
             if (currentStream == 0)
                 currentStream = stream->getStreamId();
 
             streamSelection->addItem (stream->getName(), stream->getStreamId());
         }
+
         if (streamSelection->indexOfItemId (currentStream) == -1)
         {
             if (streamSelection->getNumItems() > 0)
@@ -147,6 +181,8 @@ void OECommutatorEditor::updateSettings()
             streamSelection->setSelectedId (currentStream, sendNotification);
         }
     }
+
+    ((OECommutator*) getProcessor())->setChannelIndices (indices);
 }
 
 void OECommutatorEditor::startAcquisition()
@@ -161,6 +197,8 @@ void OECommutatorEditor::stopAcquisition()
 {
     streamSelection->setEnabled (true);
     serialSelection->setEnabled (true);
-    axisSelection->setEnabled (true);
     axisOverride->setEnabled (true);
+
+    if (axisOverride->getToggleState())
+        axisSelection->setEnabled (true);
 }
