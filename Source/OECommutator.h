@@ -51,10 +51,10 @@ public:
 
     static enum class QuaternionChannel : uint32_t
     {
-        X = 0,
-        Y = 1,
-        Z = 2,
-        W = 3,
+        W = 0,
+        X = 1,
+        Y = 2,
+        Z = 3,
     };
 
     /** Sets the quaternion channel indices within a specific stream. Quaternion indices are expected to be ordered X/Y/Z/W. */
