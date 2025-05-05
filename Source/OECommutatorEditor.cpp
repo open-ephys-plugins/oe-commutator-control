@@ -23,116 +23,101 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "OECommutatorEditor.h"
 #include "OECommutator.h"
 
-OECommutatorEditor::OECommutatorEditor(GenericProcessor* parentNode)
-    : GenericEditor(parentNode)
+OECommutatorEditor::OECommutatorEditor (GenericProcessor* parentNode)
+    : GenericEditor (parentNode)
 {
+    desiredWidth = 180;
 
-    desiredWidth = 170;
+    vector<ofSerialDeviceInfo> devices = serial.getDeviceList();
 
-    vector <ofSerialDeviceInfo> devices = serial.getDeviceList();
+    serialLabel = std::make_unique<Label> ("Serial label");
+    serialLabel->setText ("Serial port", dontSendNotification);
+    serialLabel->setBounds (5, 30, 90, 20);
+    addAndMakeVisible (serialLabel.get());
 
-    serialLabel = std::make_unique<Label>("Serial label");
-    serialLabel->setText("Serial port", dontSendNotification);
-    serialLabel->setBounds(15, 25, 110, 20);
-    addAndMakeVisible(serialLabel.get());
-
-    serialSelection = std::make_unique<ComboBox>("Serial");
-    serialSelection->setBounds(15, 45, 110, 20);
-    serialSelection->addListener(this);
+    serialSelection = std::make_unique<ComboBox> ("Serial");
+    serialSelection->setBounds (5, 50, 90, 20);
     for (int i = 0; i < devices.size(); i++)
     {
-        serialSelection->addItem(devices[i].getDevicePath(), i + 1);
+        serialSelection->addItem (devices[i].getDevicePath(), i + 1);
     }
-    addAndMakeVisible(serialSelection.get());
+    serialSelection->addListener (this);
+    addAndMakeVisible (serialSelection.get());
 
-    streamLabel = std::make_unique<Label>("Stream label");
-    streamLabel->setText("Stream", dontSendNotification);
-    streamLabel->setBounds(15, 75, 110, 20);
-    addAndMakeVisible(streamLabel.get());
+    axisOverride = std::make_unique<UtilityButton> ("Override");
+    axisOverride->setBounds (110, 30, 62, 18);
+    axisOverride->setRadius (2.0f);
+    axisOverride->setClickingTogglesState (true);
+    axisOverride->setToggleState (false, dontSendNotification);
+    axisOverride->setTooltip ("Override the default axis of rotation");
+    axisOverride->addListener (this);
+    addAndMakeVisible (axisOverride.get());
 
-    streamSelection = std::make_unique<ComboBox>("Stream");
-    streamSelection->setBounds(15, 95, 110, 20);
-    streamSelection->addListener(this);
-    addAndMakeVisible(streamSelection.get());
+    axisSelection = std::make_unique<ComboBoxParameterEditor> (parentNode->getParameter ("axis"));
+    axisSelection->setLayout (ParameterEditor::Layout::nameHidden);
+    axisSelection->setBounds (110, 50, 62, 20);
+    axisSelection->setEnabled (axisOverride->getToggleState());
+    addAndMakeVisible (axisSelection.get());
 
-    leftButton = std::make_unique<ArrowButton>("left",0.5,juce::Colours::black);
-    leftButton->setBounds(130, 75, 20, 20);
-    leftButton->addListener(this);
-    leftButton->setRepeatSpeed(500, 100);
-    addAndMakeVisible(leftButton.get());
-    
-    rightButton = std::make_unique<ArrowButton>("left", 0.0, juce::Colours::black);
-    rightButton->setBounds(150, 75, 20, 20);
-    rightButton->addListener(this);
-    rightButton->setRepeatSpeed(500, 100);
-    addAndMakeVisible(rightButton.get());
+    streamLabel = std::make_unique<Label> ("Stream label");
+    streamLabel->setText ("Stream", dontSendNotification);
+    streamLabel->setBounds (5, 75, 90, 20);
+    addAndMakeVisible (streamLabel.get());
 
-    angleSelection = std::make_unique<ComboBox>("Angle sel");
-    angleSelection->setBounds(130, 45, 40, 20);
-    angleSelection->addListener(this);
-    angleSelection->addItem("+Z", 1);
-    angleSelection->addItem("-Z", 2);
-    angleSelection->addItem("+Y", 3);
-    angleSelection->addItem("-Y", 4);
-    angleSelection->addItem("+X", 5);
-    angleSelection->addItem("-X", 6);
-    angleSelection->setSelectedId(1, sendNotificationAsync);
-    addAndMakeVisible(angleSelection.get());
+    streamSelection = std::make_unique<ComboBox> ("Stream");
+    streamSelection->setBounds (5, 95, 90, 20);
+    streamSelection->addListener (this);
+    addAndMakeVisible (streamSelection.get());
 
- /*   headingLabel = std::make_unique<Label>("heading label");
-    headingLabel->setText("0.0", dontSendNotification);
-    headingLabel->setBounds(120, 110 ,60, 20);
-    addAndMakeVisible(headingLabel.get());*/
+    manualTurnLabel = std::make_unique<Label> ("manualTurn");
+    manualTurnLabel->setText ("Turn", dontSendNotification);
+    manualTurnLabel->setBounds (118, 75, 50, 20);
+    addAndMakeVisible (manualTurnLabel.get());
 
+    leftButton = std::make_unique<ArrowButton> ("left", 0.5f, juce::Colours::black);
+    leftButton->setBounds (117, 95, 20, 20);
+    leftButton->addListener (this);
+    leftButton->setRepeatSpeed (500, 100);
+    addAndMakeVisible (leftButton.get());
+
+    rightButton = std::make_unique<ArrowButton> ("right", 0.0f, juce::Colours::black);
+    rightButton->setBounds (142, 95, 20, 20);
+    rightButton->addListener (this);
+    rightButton->setRepeatSpeed (500, 100);
+    addAndMakeVisible (rightButton.get());
 }
 
-void OECommutatorEditor::setHeading(double h)
+void OECommutatorEditor::buttonClicked (Button* btn)
 {
-  /*  if (mustStop) return;
-    else
-    {
-        lockedSetHeading(h);
-    }*/
-}
-
-void OECommutatorEditor::lockedSetHeading(double h)
-{
-  /*  const MessageManagerLock mmlock;
-    headingLabel->setText(String(h, 3), dontSendNotification);*/
-}
-
-void OECommutatorEditor::buttonClicked(Button* btn)
-{
-    OECommutator* proc = (OECommutator*)getProcessor();
+    OECommutator* proc = (OECommutator*) getProcessor();
     if (btn == leftButton.get())
     {
-        proc->manualTurn(0.1f);
+        proc->manualTurn (0.1f);
     }
     else if (btn == rightButton.get())
     {
-        proc->manualTurn(-0.1f);
+        proc->manualTurn (-0.1f);
+    }
+    else if (btn == axisOverride.get())
+    {
+        axisSelection->setEnabled (btn->getToggleState());
     }
 }
 
-void OECommutatorEditor::comboBoxChanged(ComboBox* cb)
+void OECommutatorEditor::comboBoxChanged (ComboBox* cb)
 {
     if (cb == streamSelection.get())
     {
-
         currentStream = cb->getSelectedId();
 
         if (currentStream > 0)
         {
-            getProcessor()->getParameter("current_stream")->setNextValue(currentStream);
+            getProcessor()->getParameter ("current_stream")->setNextValue (currentStream);
         }
     }
     else if (cb == serialSelection.get())
     {
-        getProcessor()->getParameter("serial_name")->setNextValue(cb->getText());
-    }
-    else if (cb == angleSelection.get())
-    {
-        getProcessor()->getParameter("angle")->setNextValue(cb->getSelectedId());
+        getProcessor()->getParameter ("serial_name")->setNextValue (cb->getText());
     }
 }
 
@@ -140,40 +125,80 @@ void OECommutatorEditor::updateSettings()
 {
     streamSelection->clear();
 
+    std::array<int, OECommutator::NUM_QUATERNION_CHANNELS> indices {};
+    indices.fill (-1);
+
     for (auto stream : getProcessor()->getDataStreams())
     {
-        if (stream->getIdentifier().contains(".bno"))
+        if (stream->getIdentifier().contains (".9dof"))
         {
+            auto channels = stream->getContinuousChannels();
+
+            for (int i = 0; i < channels.size(); i++)
+            {
+                auto ch = channels[i];
+
+                if (ch->getIdentifier().contains(".quaternion.w"))
+                {
+                    indices[(uint32_t) OECommutator::QuaternionChannel::W] = i;
+                }
+                else if (ch->getIdentifier().contains (".quaternion.x"))
+                {
+                    indices[(uint32_t) OECommutator::QuaternionChannel::X] = i;
+                }
+                else if (ch->getIdentifier().contains (".quaternion.y"))
+                {
+                    indices[(uint32_t) OECommutator::QuaternionChannel::Y] = i;
+                }
+                else if (ch->getIdentifier().contains (".quaternion.z"))
+                {
+                    indices[(uint32_t) OECommutator::QuaternionChannel::Z] = i;
+                }
+            }
+
+            if (!OECommutator::verifyQuaternionChannelIndices(indices))
+            {
+                LOGD ("Invalid channel indices. Cannot find all quaternion channels in this data stream.");
+                continue;
+            }
+
             if (currentStream == 0)
                 currentStream = stream->getStreamId();
 
-            streamSelection->addItem(stream->getName(), stream->getStreamId());
+            streamSelection->addItem (stream->getName(), stream->getStreamId());
         }
-        if (streamSelection->indexOfItemId(currentStream) == -1)
+
+        if (streamSelection->indexOfItemId (currentStream) == -1)
         {
             if (streamSelection->getNumItems() > 0)
-                currentStream = streamSelection->getItemId(0);
+                currentStream = streamSelection->getItemId (0);
             else
                 currentStream = 0;
         }
 
         if (currentStream > 0)
         {
-            streamSelection->setSelectedId(currentStream, sendNotification);
+            streamSelection->setSelectedId (currentStream, sendNotification);
         }
     }
+
+    ((OECommutator*) getProcessor())->setChannelIndices (indices);
 }
 
 void OECommutatorEditor::startAcquisition()
 {
-    streamSelection->setEnabled(false);
-    serialSelection->setEnabled(false);
-    mustStop = false;
+    streamSelection->setEnabled (false);
+    serialSelection->setEnabled (false);
+    axisSelection->setEnabled (false);
+    axisOverride->setEnabled (false);
 }
 
 void OECommutatorEditor::stopAcquisition()
 {
-    mustStop = true;
-    streamSelection->setEnabled(true);
-    serialSelection->setEnabled(true);
+    streamSelection->setEnabled (true);
+    serialSelection->setEnabled (true);
+    axisOverride->setEnabled (true);
+
+    if (axisOverride->getToggleState())
+        axisSelection->setEnabled (true);
 }

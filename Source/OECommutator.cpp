@@ -25,54 +25,67 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "OECommutatorEditor.h"
 #include <CoreServicesHeader.h>
 
-
 OECommutator::OECommutator()
-    : GenericProcessor("OE Commutator")
+    : GenericProcessor ("OE Commutator")
 {
-    addIntParameter(Parameter::GLOBAL_SCOPE, "current_stream", "Currently selected stream",
-        0, 0, 200000, false);
+    addIntParameter (Parameter::PROCESSOR_SCOPE, "current_stream", "Current Stream", "Currently selected stream", 0, 0, 200000, false);
 
-    addStringParameter(Parameter::GLOBAL_SCOPE, "serial_name", "Serial port name", "", true);
-    addIntParameter(Parameter::GLOBAL_SCOPE, "angle", "Selected angle", 1, 1, 6);
+    addStringParameter (Parameter::PROCESSOR_SCOPE, "serial_name", "Serial Name", "Serial port name", "", true);
+
+    Array<String> axes = Array<String>();
+    axes.add ("+Z");
+    axes.add ("-Z");
+    axes.add ("+Y");
+    axes.add ("-Y");
+    axes.add ("+X");
+    axes.add ("-X");
+
+    addCategoricalParameter (Parameter::PROCESSOR_SCOPE, "axis", "Axis", "Selected axis", axes, 0, true);
 
     commutator = std::make_unique<CommutatorThread>();
+
+    channelIndices.fill (-1);
 }
-
-
-OECommutator::~OECommutator()
-{
-
-}
-
 
 AudioProcessorEditor* OECommutator::createEditor()
 {
-    editor = std::make_unique<OECommutatorEditor>(this);
+    editor = std::make_unique<OECommutatorEditor> (this);
     return editor.get();
 }
 
-
-void OECommutator::parameterValueChanged(Parameter* parameter)
+void OECommutator::parameterValueChanged (Parameter* parameter)
 {
-    if (parameter->getName().equalsIgnoreCase("current_stream"))
+    if (parameter->getName().equalsIgnoreCase ("current_stream"))
     {
+        uint16 candidateStream = (uint16) (int) parameter->getValue();
 
-        uint16 candidateStream = (uint16)(int)parameter->getValue();
-
-        if (streamExists(candidateStream))
+        if (streamExists (candidateStream))
             currentStream = candidateStream;
+    }
+    else if (parameter->getName().equalsIgnoreCase ("serial_name"))
+    {
+        commutator->setSerial (parameter->getValueAsString());
+    }
+}
 
-    }
-    else if (parameter->getName().equalsIgnoreCase("serial_name"))
+bool OECommutator::isReady()
+{
+    commutator->setRotationAxis (getRotationAxis (getParameter ("axis")->getValueAsString()));
+
+    if (! commutator->isReady())
+        return false;
+
+    if (! streamExists (currentStream))
+        return false;
+
+    int maxStreamIndex = getDataStream (currentStream)->getContinuousChannels().size();
+
+    for (const auto index : channelIndices)
     {
-        commutator->setSerial(parameter->getValueAsString());
+        if (index < 0 || index >= maxStreamIndex)
+            return false;
     }
-    else if (parameter->getName().equalsIgnoreCase("angle"))
-    {
-        int value = parameter->getValue();
-        selAngle = (value - 1) / 2;
-        selPol = (value - 1) % 2;
-    }
+    return true;
 }
 
 bool OECommutator::startAcquisition()
@@ -86,61 +99,27 @@ bool OECommutator::stopAcquisition()
     return true;
 }
 
-void OECommutator::process(AudioBuffer<float>& buffer)
+void OECommutator::process (AudioBuffer<float>& buffer)
 {
-    double roll, pitch, heading;
     if (currentStream != 0)
     {
-        std::array<double, 4> q;
-        int nSamples = getNumSamplesInBlock(currentStream);
-        if (nSamples > 0) {
+        std::array<double, 4> data = { 0, 0, 0, 0 };
+
+        int nSamples = getNumSamplesInBlock (currentStream);
+        if (nSamples > 0)
+        {
             for (int i = 0; i < 4; i++)
             {
-                int chanIndex = getDataStream(currentStream)->getContinuousChannels()[i]->getGlobalIndex();
-                q[i] = buffer.getSample(chanIndex, nSamples - 1);
+                int chanIndex = getDataStream (currentStream)->getContinuousChannels()[channelIndices[i]]->getGlobalIndex();
+                data[i] = buffer.getSample (chanIndex, nSamples - 1);
             }
-            //test if there is a pitch singularity and correct
-            double norm = q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3];
-            double sing = q[1] * q[2] + q[0] * q[3];
 
-            if (sing > 0.499 * norm)
-            {
-                heading = 2 * std::atan2(q[1], q[0]);
-                pitch = MathConstants<double>::halfPi;
-                roll = 0;
-            }
-            else if (sing < -0.499 * norm)
-            {
-                heading = -2 * std::atan2(q[1], q[0]);
-                pitch = -MathConstants<double>::halfPi;
-                roll = 0;
-            }
-            else
-            {
-
-                // Roll (rotation around the x-axis)
-                roll = std::atan2(2 * (q[0] * q[1] + q[2] * q[3]), 1 - 2 * (q[1] * q[1] + q[2] * q[2]));
-                // Pitch (rotation around the y-axis)
-                double arg = 2 * (q[0] * q[2] - q[3] * q[1]);
-                arg = std::max(-1.0, std::min(1.0, arg));
-                pitch = std::asin(arg);
-                // Yaw (rotation around the z-axis, or heading)
-                heading = std::atan2(2 * (q[0] * q[3] + q[1] * q[2]), 1 - 2 * (q[2] * q[2] + q[3] * q[3]));
-            }
-            double angle;
-            if (selAngle == 0) angle = heading;
-            else if (selAngle == 1) angle = pitch;
-            else angle = roll;
-
-            if (selPol != 0) angle = -angle;
-
-            commutator->setHeading(angle);
-            static_cast<OECommutatorEditor*>(editor.get())->setHeading(angle);
+            commutator->setQuaternion (data);
         }
     }
 }
 
-bool OECommutator::streamExists(uint16 streamId)
+bool OECommutator::streamExists (uint16 streamId) const
 {
     for (auto stream : getDataStreams())
     {
@@ -149,12 +128,61 @@ bool OECommutator::streamExists(uint16 streamId)
     }
 
     return false;
-
 }
 
-void OECommutator::manualTurn(double turn)
+void OECommutator::manualTurn (double turn)
 {
-    commutator->manualTurn(turn);
+    commutator->manualTurn (turn);
 }
 
+Vector3D<double> OECommutator::getRotationAxis (String axis) const
+{
+    if (axis == "+Z")
+    {
+        return Vector3D<double> (0, 0, 1);
+    }
+    else if (axis == "-Z")
+    {
+        return Vector3D<double> (0, 0, -1);
+    }
+    else if (axis == "+Y")
+    {
+        return Vector3D<double> (0, 1, 0);
+    }
+    else if (axis == "-Y")
+    {
+        return Vector3D<double> (0, -1, 0);
+    }
+    else if (axis == "+X")
+    {
+        return Vector3D<double> (1, 0, 0);
+    }
+    else if (axis == "-X")
+    {
+        return Vector3D<double> (-1, 0, 0);
+    }
+    else
+    {
+        return Vector3D<double> (0, 0, 0);
+    }
+}
 
+void OECommutator::setChannelIndices (std::array<int, NUM_QUATERNION_CHANNELS> indices)
+{
+    channelIndices = indices;
+}
+
+bool OECommutator::verifyQuaternionChannelIndices (std::array<int, NUM_QUATERNION_CHANNELS> indices)
+{
+    for (int i = 0; i < NUM_QUATERNION_CHANNELS; i++)
+    {
+        if (indices[i] < 0)
+            return false;
+
+        for (int j = i + 1; j < NUM_QUATERNION_CHANNELS; j++)
+        {
+            if (indices[i] == indices[j])
+                return false;
+        }
+    }
+}
