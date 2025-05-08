@@ -33,6 +33,8 @@ public:
 
     ~OECommutator() {};
 
+    void registerParameters() override;
+
     AudioProcessorEditor* createEditor() override;
 
     void process (AudioBuffer<float>& buffer) override;

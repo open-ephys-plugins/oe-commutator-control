@@ -28,6 +28,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 OECommutator::OECommutator()
     : GenericProcessor ("Commutator Control")
 {
+    commutator = std::make_unique<CommutatorThread>();
+
+    channelIndices.fill (-1);
+}
+
+void OECommutator::registerParameters()
+{
     addIntParameter (Parameter::PROCESSOR_SCOPE, "current_stream", "Current Stream", "Currently selected stream", 0, 0, 200000, false);
 
     addStringParameter (Parameter::PROCESSOR_SCOPE, "serial_name", "Serial Name", "Serial port name", "", true);
@@ -41,10 +48,6 @@ OECommutator::OECommutator()
     axes.add ("-X");
 
     addCategoricalParameter (Parameter::PROCESSOR_SCOPE, "axis", "Axis", "Selected axis", axes, 0, true);
-
-    commutator = std::make_unique<CommutatorThread>();
-
-    channelIndices.fill (-1);
 }
 
 AudioProcessorEditor* OECommutator::createEditor()
