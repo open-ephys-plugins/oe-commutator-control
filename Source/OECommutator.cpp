@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <CoreServicesHeader.h>
 
 OECommutator::OECommutator()
-    : GenericProcessor ("OE Commutator")
+    : GenericProcessor ("Commutator Control")
 {
     addIntParameter (Parameter::PROCESSOR_SCOPE, "current_stream", "Current Stream", "Currently selected stream", 0, 0, 200000, false);
 
