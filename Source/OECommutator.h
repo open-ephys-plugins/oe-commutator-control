@@ -51,7 +51,7 @@ public:
 
     static constexpr int NUM_QUATERNION_CHANNELS = 4;
 
-    static enum class QuaternionChannel : uint32_t
+    enum class QuaternionChannel : uint32_t
     {
         W = 0,
         X = 1,

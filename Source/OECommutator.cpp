@@ -188,4 +188,5 @@ bool OECommutator::verifyQuaternionChannelIndices (std::array<int, NUM_QUATERNIO
                 return false;
         }
     }
+    return true;
 }
