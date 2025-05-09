@@ -39,7 +39,7 @@ using namespace Plugin;
 extern "C" EXPORT void getLibInfo (Plugin::LibraryInfo* info)
 {
     info->apiVersion = PLUGIN_API_VER;
-    info->name = "Open Ephys commutator control";
+    info->name = "Commutator Control";
     info->libVersion = "0.1.0";
     info->numPlugins = NUM_PLUGINS;
 }
@@ -50,7 +50,7 @@ extern "C" EXPORT int getPluginInfo (int index, Plugin::PluginInfo* info)
     {
         case 0:
             info->type = Plugin::Type::PROCESSOR;
-            info->processor.name = "OE Commutator"; //Processor name shown in the GUI
+            info->processor.name = "Commutator Control"; //Processor name shown in the GUI
             info->processor.type = Processor::Type::SINK;
             info->processor.creator = &(Plugin::createProcessor<OECommutator>);
             break;

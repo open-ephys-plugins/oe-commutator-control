@@ -82,6 +82,7 @@ bool CommutatorThread::start()
     {
         startTimer (100);
         isRunning = true;
+        return true;
     }
     else
     {

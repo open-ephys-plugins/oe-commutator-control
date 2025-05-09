@@ -45,10 +45,18 @@ public:
     void startAcquisition() override;
     void stopAcquisition() override;
 
+    void saveCustomParametersToXml (XmlElement* xml) override;
+    void loadCustomParametersFromXml (XmlElement* xml) override;
+
+    void setSerialSelection (std::string selection);
+
+    std::string getAxisSelection();
+
 private:
+
     ofSerial serial;
 
-    std::unique_ptr<ComboBoxParameterEditor> axisSelection;
+    std::unique_ptr<ComboBox> axisSelection;
 
     std::unique_ptr<ComboBox> serialSelection;
     std::unique_ptr<ComboBox> streamSelection;

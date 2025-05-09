@@ -26,25 +26,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <CoreServicesHeader.h>
 
 OECommutator::OECommutator()
-    : GenericProcessor ("OE Commutator")
+    : GenericProcessor ("Commutator Control")
 {
-    addIntParameter (Parameter::PROCESSOR_SCOPE, "current_stream", "Current Stream", "Currently selected stream", 0, 0, 200000, false);
-
-    addStringParameter (Parameter::PROCESSOR_SCOPE, "serial_name", "Serial Name", "Serial port name", "", true);
-
-    Array<String> axes = Array<String>();
-    axes.add ("+Z");
-    axes.add ("-Z");
-    axes.add ("+Y");
-    axes.add ("-Y");
-    axes.add ("+X");
-    axes.add ("-X");
-
-    addCategoricalParameter (Parameter::PROCESSOR_SCOPE, "axis", "Axis", "Selected axis", axes, 0, true);
-
     commutator = std::make_unique<CommutatorThread>();
 
     channelIndices.fill (-1);
+}
+
+void OECommutator::registerParameters()
+{
+    addIntParameter (Parameter::PROCESSOR_SCOPE, "current_stream", "Current Stream", "Currently selected stream", 0, 0, 200000, true);
+
+    addStringParameter (Parameter::PROCESSOR_SCOPE, "serial_name", "Serial Name", "Serial port name", "", true);
 }
 
 AudioProcessorEditor* OECommutator::createEditor()
@@ -65,12 +58,14 @@ void OECommutator::parameterValueChanged (Parameter* parameter)
     else if (parameter->getName().equalsIgnoreCase ("serial_name"))
     {
         commutator->setSerial (parameter->getValueAsString());
+        ((OECommutatorEditor*) editor.get())->setSerialSelection (parameter->getValueAsString().toStdString());
     }
 }
 
 bool OECommutator::isReady()
 {
-    commutator->setRotationAxis (getRotationAxis (getParameter ("axis")->getValueAsString()));
+    std::string axis = ((OECommutatorEditor*) editor.get())->getAxisSelection();
+    commutator->setRotationAxis (getRotationAxis (axis));
 
     if (! commutator->isReady())
         return false;
@@ -167,6 +162,17 @@ Vector3D<double> OECommutator::getRotationAxis (String axis) const
     }
 }
 
+int OECommutator::getAxisIndex (std::string axis)
+{
+    for (int i = 0; i < axes.size(); i++)
+    {
+        if (axis == axes[i])
+            return i;
+    }
+
+    return -1;
+}
+
 void OECommutator::setChannelIndices (std::array<int, NUM_QUATERNION_CHANNELS> indices)
 {
     channelIndices = indices;
@@ -185,4 +191,5 @@ bool OECommutator::verifyQuaternionChannelIndices (std::array<int, NUM_QUATERNIO
                 return false;
         }
     }
+    return true;
 }
