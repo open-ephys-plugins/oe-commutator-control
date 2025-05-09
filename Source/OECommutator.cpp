@@ -35,19 +35,9 @@ OECommutator::OECommutator()
 
 void OECommutator::registerParameters()
 {
-    addIntParameter (Parameter::PROCESSOR_SCOPE, "current_stream", "Current Stream", "Currently selected stream", 0, 0, 200000, false);
+    addIntParameter (Parameter::PROCESSOR_SCOPE, "current_stream", "Current Stream", "Currently selected stream", 0, 0, 200000, true);
 
     addStringParameter (Parameter::PROCESSOR_SCOPE, "serial_name", "Serial Name", "Serial port name", "", true);
-
-    Array<String> axes = Array<String>();
-    axes.add ("+Z");
-    axes.add ("-Z");
-    axes.add ("+Y");
-    axes.add ("-Y");
-    axes.add ("+X");
-    axes.add ("-X");
-
-    addCategoricalParameter (Parameter::PROCESSOR_SCOPE, "axis", "Axis", "Selected axis", axes, 0, true);
 }
 
 AudioProcessorEditor* OECommutator::createEditor()
@@ -68,12 +58,14 @@ void OECommutator::parameterValueChanged (Parameter* parameter)
     else if (parameter->getName().equalsIgnoreCase ("serial_name"))
     {
         commutator->setSerial (parameter->getValueAsString());
+        ((OECommutatorEditor*) editor.get())->setSerialSelection (parameter->getValueAsString().toStdString());
     }
 }
 
 bool OECommutator::isReady()
 {
-    commutator->setRotationAxis (getRotationAxis (getParameter ("axis")->getValueAsString()));
+    std::string axis = ((OECommutatorEditor*) editor.get())->getAxisSelection();
+    commutator->setRotationAxis (getRotationAxis (axis));
 
     if (! commutator->isReady())
         return false;
@@ -168,6 +160,17 @@ Vector3D<double> OECommutator::getRotationAxis (String axis) const
     {
         return Vector3D<double> (0, 0, 0);
     }
+}
+
+int OECommutator::getAxisIndex (std::string axis)
+{
+    for (int i = 0; i < axes.size(); i++)
+    {
+        if (axis == axes[i])
+            return i;
+    }
+
+    return -1;
 }
 
 void OECommutator::setChannelIndices (std::array<int, NUM_QUATERNION_CHANNELS> indices)

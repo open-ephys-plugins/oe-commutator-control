@@ -30,7 +30,7 @@ OECommutatorEditor::OECommutatorEditor (GenericProcessor* parentNode)
 
     vector<ofSerialDeviceInfo> devices = serial.getDeviceList();
 
-    FontOptions labelFont("Inter", "Regular", 14.0f);
+    FontOptions labelFont ("Inter", "Regular", 14.0f);
 
     serialLabel = std::make_unique<Label> ("Serial label");
     serialLabel->setFont (labelFont);
@@ -57,10 +57,17 @@ OECommutatorEditor::OECommutatorEditor (GenericProcessor* parentNode)
     axisOverride->addListener (this);
     addAndMakeVisible (axisOverride.get());
 
-    axisSelection = std::make_unique<ComboBoxParameterEditor> (parentNode->getParameter ("axis"));
-    axisSelection->setLayout (ParameterEditor::Layout::nameHidden);
+    axisSelection = std::make_unique<ComboBox> ("Axis Override");
     axisSelection->setBounds (115, 50, 62, 20);
     axisSelection->setEnabled (axisOverride->getToggleState());
+    axisSelection->setTooltip ("Choose a specific axis to rotate around, based on the device orientation");
+    int count = 1;
+    for (const auto& axis : OECommutator::axes)
+    {
+        axisSelection->addItem (axis, count++);
+    }
+    axisSelection->setSelectedItemIndex (1, dontSendNotification);
+    axisSelection->addListener (this);
     addAndMakeVisible (axisSelection.get());
 
     streamLabel = std::make_unique<Label> ("Stream label");
@@ -92,6 +99,22 @@ OECommutatorEditor::OECommutatorEditor (GenericProcessor* parentNode)
     rightButton->addListener (this);
     rightButton->setRepeatSpeed (500, 100);
     addAndMakeVisible (rightButton.get());
+}
+
+void OECommutatorEditor::setSerialSelection (std::string selection)
+{
+    for (int i = 0; i < serialSelection->getNumItems(); i++)
+    {
+        if (serialSelection->getItemText (i).equalsIgnoreCase (String (selection)))
+        {
+            serialSelection->setSelectedItemIndex (i, dontSendNotification);
+        }
+    }
+}
+
+std::string OECommutatorEditor::getAxisSelection()
+{
+    return axisSelection->getText().toStdString();
 }
 
 void OECommutatorEditor::buttonClicked (Button* btn)
@@ -145,7 +168,7 @@ void OECommutatorEditor::updateSettings()
             {
                 auto ch = channels[i];
 
-                if (ch->getIdentifier().contains(".quaternion.w"))
+                if (ch->getIdentifier().contains (".quaternion.w"))
                 {
                     indices[(uint32_t) OECommutator::QuaternionChannel::W] = i;
                 }
@@ -163,7 +186,7 @@ void OECommutatorEditor::updateSettings()
                 }
             }
 
-            if (!OECommutator::verifyQuaternionChannelIndices(indices))
+            if (! OECommutator::verifyQuaternionChannelIndices (indices))
             {
                 LOGD ("Invalid channel indices. Cannot find all quaternion channels in this data stream.");
                 continue;
@@ -205,7 +228,42 @@ void OECommutatorEditor::stopAcquisition()
     streamSelection->setEnabled (true);
     serialSelection->setEnabled (true);
     axisOverride->setEnabled (true);
+    axisSelection->setEnabled (axisOverride->getToggleState());
+}
 
-    if (axisOverride->getToggleState())
-        axisSelection->setEnabled (true);
+void OECommutatorEditor::saveCustomParametersToXml (XmlElement* xml)
+{
+    LOGD ("Saving OECommutatorEditor settings.");
+
+    xml->setAttribute ("COM_PORT", serialSelection->getText());
+    xml->setAttribute ("OVERRIDE_STATUS", axisOverride->getToggleState());
+    xml->setAttribute ("OVERRIDE_AXIS", axisSelection->getText());
+}
+
+void OECommutatorEditor::loadCustomParametersFromXml (XmlElement* xml)
+{
+    LOGD ("Loading OECommutatorEditor settings.");
+
+    if (xml->hasAttribute ("COM_PORT"))
+    {
+        String comPort = xml->getStringAttribute ("COM_PORT");
+
+        if (comPort.contains ("COM") && ! comPort.isEmpty())
+        {
+            getProcessor()->getParameter ("serial_name")->setNextValue (comPort);
+        }
+    }
+
+    if (xml->hasAttribute ("OVERRIDE_STATUS"))
+    {
+        axisOverride->setToggleState (xml->getBoolAttribute ("OVERRIDE_STATUS"), sendNotification);
+    }
+
+    if (xml->hasAttribute ("OVERRIDE_AXIS"))
+    {
+        int axisIndex = OECommutator::getAxisIndex (xml->getStringAttribute ("OVERRIDE_AXIS").toStdString());
+
+        if (axisIndex >= 0)
+            axisSelection->setSelectedItemIndex (axisIndex, dontSendNotification);
+    }
 }

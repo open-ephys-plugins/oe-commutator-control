@@ -59,13 +59,18 @@ public:
         Z = 3,
     };
 
+    inline static const std::array<std::string, 6> axes = { "+Z", "-Z", "+Y", "-Y", "+X", "-X" };
+
     /** Sets the quaternion channel indices within a specific stream. Quaternion indices are expected to be ordered X/Y/Z/W. */
     void setChannelIndices (std::array<int, NUM_QUATERNION_CHANNELS> indices);
 
     /** Check that all indices are unique, and greater than or equal to zero. */
     static bool verifyQuaternionChannelIndices (std::array<int, NUM_QUATERNION_CHANNELS> indices);
 
+    static int getAxisIndex (std::string axis);
+
 private:
+
     uint16 currentStream = 0;
     std::unique_ptr<CommutatorThread> commutator;
 
