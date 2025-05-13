@@ -66,7 +66,7 @@ OECommutatorEditor::OECommutatorEditor (GenericProcessor* parentNode)
     {
         axisSelection->addItem (axis, count++);
     }
-    axisSelection->setSelectedItemIndex (1, dontSendNotification);
+    axisSelection->setSelectedItemIndex (0, dontSendNotification);
     axisSelection->addListener (this);
     addAndMakeVisible (axisSelection.get());
 
