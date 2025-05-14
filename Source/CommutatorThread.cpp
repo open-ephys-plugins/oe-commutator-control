@@ -115,17 +115,17 @@ void CommutatorThread::sendTurn (double turn)
 
 double CommutatorThread::quaternionToTwist (Quaternion<double> currentQuaternion, Quaternion<double> lastQuaternion)
 {
-    Quaternion<double> lastTransposed(-lastQuaternion.vector, lastQuaternion.scalar);
+    Quaternion<double> lastConjugated(-lastQuaternion.vector, lastQuaternion.scalar);
 
     // Get incremental rotation
     Quaternion<double> deltaQuaternion(currentQuaternion);
-    deltaQuaternion *= lastTransposed; //juce quaternions do not implement a*b operator, only a *= b.
+    deltaQuaternion *= lastConjugated; //juce quaternions do not implement a*b operator, only a *= b.
 
     // Get device rotation axis in global coordinates
     Quaternion<double> deviceAxis (rotationAxis, 0);
     Quaternion<double> projection (lastQuaternion);
     projection *= deviceAxis;
-    projection *= lastTransposed;
+    projection *= lastConjugated;
 
 
     // Calculate rotation across the axis in global coordinates
@@ -133,7 +133,7 @@ double CommutatorThread::quaternionToTwist (Quaternion<double> currentQuaternion
 
     double incrementalAngle = 2*std::atan2 (dotProduct, deltaQuaternion.scalar);
 
-    return incrementalAngle / MathConstants<double>::twoPi;
+    return -incrementalAngle / MathConstants<double>::twoPi;
 
 }
 
