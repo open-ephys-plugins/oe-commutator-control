@@ -75,7 +75,7 @@ bool CommutatorThread::isReady() const
 bool CommutatorThread::start()
 {
     lastTwist = std::numeric_limits<double>::quiet_NaN();
-    previousAngleAboutAxis = std::numeric_limits<double>::quiet_NaN();
+    lastQuaternion = defaultQuaternion;
     runningQuaternion = defaultQuaternion;
 
     if (open && rotationAxis.length() == 1)
@@ -113,32 +113,28 @@ void CommutatorThread::sendTurn (double turn)
     int n = serial.writeBytes (reinterpret_cast<unsigned char*> (const_cast<char*> (str)), len);
 }
 
-double CommutatorThread::quaternionToTwist (Quaternion<double> quaternion)
+double CommutatorThread::quaternionToTwist (Quaternion<double> currentQuaternion, Quaternion<double> lastQuaternion)
 {
-    // Project rotation axis onto the direction axis
-    double dotProduct = quaternion.vector * rotationAxis;
+    Quaternion<double> lastConjugated(-lastQuaternion.vector, lastQuaternion.scalar);
 
-    Vector3D<double> projection = rotationAxis;
-    double scaleFactor = dotProduct / (rotationAxis * rotationAxis);
-    projection *= scaleFactor;
+    // Get incremental rotation
+    Quaternion<double> deltaQuaternion(currentQuaternion);
+    deltaQuaternion *= lastConjugated; //juce quaternions do not implement a*b operator, only a *= b.
 
-    Quaternion<double> rotationAboutAxis = Quaternion<double> (projection, quaternion.scalar).normalised();
+    // Get device rotation axis in global coordinates
+    Quaternion<double> deviceAxis (rotationAxis, 0);
+    Quaternion<double> projection (lastQuaternion);
+    projection *= deviceAxis;
+    projection *= lastConjugated;
 
-    if (dotProduct < 0) // Account for angle-axis flipping
-    {
-        rotationAboutAxis = Quaternion<double> (-rotationAboutAxis.vector, -rotationAboutAxis.scalar);
-    }
 
-    // Normalize twist feedback in units of turns
-    double angleAboutAxis = 2 * std::acos (rotationAboutAxis.scalar);
+    // Calculate rotation across the axis in global coordinates
+    double dotProduct = deltaQuaternion.vector * projection.vector;
 
-    double twist = ! isnan (previousAngleAboutAxis)
-                       ? std::fmod (angleAboutAxis - previousAngleAboutAxis + 3 * MathConstants<double>::pi, MathConstants<double>::twoPi) - MathConstants<double>::pi
-                       : 0;
+    double incrementalAngle = 2*std::atan2 (dotProduct, deltaQuaternion.scalar);
 
-    previousAngleAboutAxis = angleAboutAxis;
+    return -incrementalAngle / MathConstants<double>::twoPi;
 
-    return -twist / MathConstants<double>::twoPi;
 }
 
 void CommutatorThread::hiResTimerCallback()
@@ -148,7 +144,12 @@ void CommutatorThread::hiResTimerCallback()
     if (currentQuaternion == defaultQuaternion)
         return;
 
-    double currentTwist = quaternionToTwist (Quaternion<double> (currentQuaternion[1], currentQuaternion[2], currentQuaternion[3], currentQuaternion[0]));
+    double currentTwist = 0;
+    if (lastQuaternion != defaultQuaternion)
+        currentTwist = quaternionToTwist (Quaternion<double> (currentQuaternion[1], currentQuaternion[2], currentQuaternion[3], currentQuaternion[0]).normalised(),
+                                          Quaternion<double> (lastQuaternion[1], lastQuaternion[2], lastQuaternion[3], lastQuaternion[0]).normalised());
+
+    lastQuaternion = currentQuaternion;
 
     if (! isnan (lastTwist))
     {
