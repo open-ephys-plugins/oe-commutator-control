@@ -18,11 +18,11 @@ jobs:
     - name: setup
       run: |
         cd ../..
-        git clone https://github.com/open-ephys/plugin-GUI.git --branch testing-juce8
+        git clone https://github.com/open-ephys/plugin-GUI.git --branch main
         cd plugin-GUI/Build
         cmake -G "Visual Studio 17 2022" -A x64 .. 
         mkdir Release && cd Release
-        curl -L https://openephys.jfrog.io/artifactory/GUI-binaries/Libraries/open-ephys-lib-v1.0.0-alpha.zip --output open-ephys-lib.zip
+        curl -L https://openephys.jfrog.io/artifactory/GUI-binaries/Libraries/open-ephys-lib-v1.0.0.zip --output open-ephys-lib.zip
         unzip open-ephys-lib.zip
       shell: bash
     - name: configure
