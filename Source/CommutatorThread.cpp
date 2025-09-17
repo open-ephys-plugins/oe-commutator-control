@@ -75,7 +75,7 @@ bool CommutatorThread::isReady() const
 bool CommutatorThread::start()
 {
     lastTwist = std::numeric_limits<double>::quiet_NaN();
-    previousAngleAboutAxis = std::numeric_limits<double>::quiet_NaN();
+    lastQuaternion = defaultQuaternion;
     runningQuaternion = defaultQuaternion;
 
     if (open && rotationAxis.length() == 1)
@@ -113,32 +113,48 @@ void CommutatorThread::sendTurn (double turn)
     int n = serial.writeBytes (reinterpret_cast<unsigned char*> (const_cast<char*> (str)), len);
 }
 
-double CommutatorThread::quaternionToTwist (Quaternion<double> quaternion)
+double CommutatorThread::quaternionToTwist (Quaternion<double> currentQuaternion, Quaternion<double> lastQuaternion)
 {
-    // Project rotation axis onto the direction axis
-    double dotProduct = quaternion.vector * rotationAxis;
+    const Vector3D<double> commutatorAxis (0, 0, 1);
+    const Vector3D<double> headstageAxis (0, 0, 1);
 
-    Vector3D<double> projection = rotationAxis;
-    double scaleFactor = dotProduct / (rotationAxis * rotationAxis);
-    projection *= scaleFactor;
+    Vector3D<double> localAxis = headstageAxis;
+    Vector3D<double> globalAxis = rotationAxis;
 
-    Quaternion<double> rotationAboutAxis = Quaternion<double> (projection, quaternion.scalar).normalised();
+    Quaternion<double> lastConjugated(-lastQuaternion.vector, lastQuaternion.scalar);
 
-    if (dotProduct < 0) // Account for angle-axis flipping
-    {
-        rotationAboutAxis = Quaternion<double> (-rotationAboutAxis.vector, -rotationAboutAxis.scalar);
-    }
+    // Get incremental rotation
+    Quaternion<double> deltaQuaternion(currentQuaternion);
+    deltaQuaternion *= lastConjugated; //juce quaternions do not implement a*b operator, only a *= b.
+    deltaQuaternion = deltaQuaternion.normalised(); //remove any possible floating point error
 
-    // Normalize twist feedback in units of turns
-    double angleAboutAxis = 2 * std::acos (rotationAboutAxis.scalar);
+    // Get device rotation axis in global coordinates
+    Quaternion<double> deviceAxis (localAxis, 0);
+    Quaternion<double> projection (lastQuaternion);
+    projection *= deviceAxis;
+    projection *= lastConjugated;
+    projection = projection.normalised();
 
-    double twist = ! isnan (previousAngleAboutAxis)
-                       ? std::fmod (angleAboutAxis - previousAngleAboutAxis + 3 * MathConstants<double>::pi, MathConstants<double>::twoPi) - MathConstants<double>::pi
-                       : 0;
 
-    previousAngleAboutAxis = angleAboutAxis;
+    // Calculate rotation across the axis in global coordinates
+    double localDotProduct = deltaQuaternion.vector * projection.vector;
 
-    return -twist / MathConstants<double>::twoPi;
+    double incrementalAngleLocal = 2 * std::atan2 (localDotProduct, deltaQuaternion.scalar);
+
+    //calculate the rotation across the commutator axis
+    double globalDotProduct = deltaQuaternion.vector * globalAxis;
+    double incrementalAngleGlobal = 2 * std::atan2 (globalDotProduct, deltaQuaternion.scalar);
+
+    //get the cosine from the rotated axis and the commutator axis
+    //since vectors are normalised, this is just the dot product
+    double cos_angle = projection.vector * globalAxis;
+
+    //Remove the local twist from the global rotation to get a weighted total rotation
+    double totalAngle = incrementalAngleLocal +(incrementalAngleGlobal - incrementalAngleLocal * cos_angle);
+
+
+    return -totalAngle / MathConstants<double>::twoPi;
+
 }
 
 void CommutatorThread::hiResTimerCallback()
@@ -148,7 +164,12 @@ void CommutatorThread::hiResTimerCallback()
     if (currentQuaternion == defaultQuaternion)
         return;
 
-    double currentTwist = quaternionToTwist (Quaternion<double> (currentQuaternion[1], currentQuaternion[2], currentQuaternion[3], currentQuaternion[0]));
+    double currentTwist = 0;
+    if (lastQuaternion != defaultQuaternion)
+        currentTwist = quaternionToTwist (Quaternion<double> (currentQuaternion[1], currentQuaternion[2], currentQuaternion[3], currentQuaternion[0]).normalised(),
+                                          Quaternion<double> (lastQuaternion[1], lastQuaternion[2], lastQuaternion[3], lastQuaternion[0]).normalised());
+
+    lastQuaternion = currentQuaternion;
 
     if (! isnan (lastTwist))
     {

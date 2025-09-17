@@ -46,13 +46,13 @@ public:
 
 private:
     /** Converts quaternion data to a twist. Quaternion values are expected to be ordered X/Y/Z/W. */
-    double quaternionToTwist (Quaternion<double> quaternion);
+    double quaternionToTwist (Quaternion<double> currentQuaternion, Quaternion<double> lastQuaternion);
     void sendTurn (double turn);
 
     ofSerial serial;
 
     double lastTwist = std::numeric_limits<double>::quiet_NaN();
-    double previousAngleAboutAxis = std::numeric_limits<double>::quiet_NaN();
+    std::array<double, 4> lastQuaternion;
 
     static inline const std::array<double, 4> defaultQuaternion { 0.0, 0.0, 0.0, 0.0 };
 
