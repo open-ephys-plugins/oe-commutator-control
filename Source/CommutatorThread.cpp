@@ -115,25 +115,45 @@ void CommutatorThread::sendTurn (double turn)
 
 double CommutatorThread::quaternionToTwist (Quaternion<double> currentQuaternion, Quaternion<double> lastQuaternion)
 {
+    const Vector3D<double> commutatorAxis (0, 0, 1);
+    const Vector3D<double> headstageAxis (0, 0, 1);
+
+    Vector3D<double> localAxis = headstageAxis;
+    Vector3D<double> globalAxis = rotationAxis;
+
     Quaternion<double> lastConjugated(-lastQuaternion.vector, lastQuaternion.scalar);
 
     // Get incremental rotation
     Quaternion<double> deltaQuaternion(currentQuaternion);
     deltaQuaternion *= lastConjugated; //juce quaternions do not implement a*b operator, only a *= b.
+    deltaQuaternion = deltaQuaternion.normalised(); //remove any possible floating point error
 
     // Get device rotation axis in global coordinates
-    Quaternion<double> deviceAxis (rotationAxis, 0);
+    Quaternion<double> deviceAxis (localAxis, 0);
     Quaternion<double> projection (lastQuaternion);
     projection *= deviceAxis;
     projection *= lastConjugated;
+    projection = projection.normalised();
 
 
     // Calculate rotation across the axis in global coordinates
-    double dotProduct = deltaQuaternion.vector * projection.vector;
+    double localDotProduct = deltaQuaternion.vector * projection.vector;
 
-    double incrementalAngle = 2*std::atan2 (dotProduct, deltaQuaternion.scalar);
+    double incrementalAngleLocal = 2 * std::atan2 (localDotProduct, deltaQuaternion.scalar);
 
-    return -incrementalAngle / MathConstants<double>::twoPi;
+    //calculate the rotation across the commutator axis
+    double globalDotProduct = deltaQuaternion.vector * globalAxis;
+    double incrementalAngleGlobal = 2 * std::atan2 (globalDotProduct, deltaQuaternion.scalar);
+
+    //get the cosine from the rotated axis and the commutator axis
+    //since vectors are normalised, this is just the dot product
+    double cos_angle = projection.vector * globalAxis;
+
+    //Remove the local twist from the global rotation to get a weighted total rotation
+    double totalAngle = incrementalAngleLocal +(incrementalAngleGlobal - incrementalAngleLocal * cos_angle);
+
+
+    return -totalAngle / MathConstants<double>::twoPi;
 
 }
 
